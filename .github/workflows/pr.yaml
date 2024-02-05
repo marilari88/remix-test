@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v2
+
       - run: |
           echo "$(pnpm config get use-node-version)"
           echo "NODE_VERSION=$(pnpm config get use-node-version)" >> $GITHUB_ENV
