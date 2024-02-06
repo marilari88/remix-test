@@ -1,0 +1,43 @@
+name: pr
+
+on: pull_request
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: 🔮 Preview
+    runs-on: ubuntu-22.04
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+
+      - run: |
+          echo "$(pnpm config get use-node-version)"
+          echo "NODE_VERSION=$(pnpm config get use-node-version)" >> $GITHUB_ENV
+        shell: bash
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm i
+        shell: bash
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel
+
+      - run: |
+          echo "rename use-node-version to node-version to avoid issues with vercel build"
+          sed -i 's/use-node-version/node-version/g' .npmrc
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+      - run: echo "PREVIEW_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_ENV
